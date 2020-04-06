@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta content="en-gb" http-equiv="Content-Language" />
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+<script src="js/unmute-v013.js" data-add-button="true"></script>
+<script src="js/tone-v13.js" ></script>
+<script src="js/nexusUI-v2.js"></script>
+<script src="js/nexusUI-v1.js"></script>
+
+<title>Untitled 1</title>
+
+<style type="text/css">
+.style1 {
+    background-color: #4CAF50;
+    font-family: verdana;
+    font-size: xx-large;
+}
+</style>
+
+</head>
+
+<body>
+
+<form method="post">
+</form>
+<p style="font-size: xx-large; font-family: verdana"> BPM (Enter a number between 20 and 200):</p>
+<input id="inputBox" name="Text1" type="number" style="width: 200px; height: 60px; font-size: xx-large; font-family: verdana"/><input class="style1" id="clearButton" name="Submit1" style="width: 200px; height: 67px; font-size: xx-large;" type="submit" value="Blank BPM"/>
+<p>
+<p style="font-size: xx-large; font-family: verdana"> Or leave the BPM blank and just tap your beat to start the metronome</p>
+<form method="post">
+    <input id="START" class="style1" name="Button2" style="width: 100%; height: 630px; background-color: #4CAF50" type="button" value="START" /></form>
+</p>
+
+
+</body>
+<script>
+    var prevTapTime;
+    var currentTapTime;
+    var timeDurationArray = [];
+    var avBeatDuration = 0;
+    var shortestBeatDuration;
+    var longestBeatDuration;
+    var biggestVarianceFromAverage;
+    var endAutoStartModeTime = Date.now();
+    
+    
+    var tick1 = new Tone.MembraneSynth({
+        pitchDecay : 0.05 ,
+        octaves : 10 ,
+        oscillator : {
+        type : "sawtooth"
+        } ,
+        envelope : {
+            attack : 0.001 ,
+            decay : 0.02 ,
+            sustain : 0.0 ,
+            release : 0.03 ,
+            attackCurve : "linear"
+            }
+    }).toMaster();
+    
+    Tone.Transport.scheduleRepeat(function(time) {
+        if (Date.now() > endAutoStartModeTime) {
+            document.getElementById("START").value = "STOP"
+            document.getElementById("START").style.backgroundColor = '#f44336'
+        };
+        tick1.triggerAttackRelease("E4", "8n");
+    }, "4n");
+    
+
+
+    function start() {
+        //console.log(data.press);
+        //startButton.style.backgroundColor = '#337ab7';
+        
+        /************************/
+        currentTapTime = Date.now();
+        Duration = currentTapTime - prevTapTime;
+        prevTapTime = currentTapTime;
+        
+        if (document.getElementById("START").value == "START") {
+            
+            tick1.triggerAttackRelease("E4", "8n");
+            timeDurationArray.push(Duration);
+            avBeatDuration = 0;
+            shortestBeatDuration = 99999;
+            longestBeatDuration = 0;
+            var i;
+            for (i = 1; i <= 6; i++) {
+                avBeatDuration += timeDurationArray[timeDurationArray.length - i] / 6;
+                if ((timeDurationArray[timeDurationArray.length - i]) < shortestBeatDuration) {
+                    shortestBeatDuration = timeDurationArray[timeDurationArray.length - i];
+                }
+                if ((timeDurationArray[timeDurationArray.length - i]) > longestBeatDuration) {
+                    longestBeatDuration = timeDurationArray[timeDurationArray.length - i];
+                }
+            }
+            biggestVarianceFromAverage = longestBeatDuration - avBeatDuration;
+            if ((avBeatDuration - shortestBeatDuration) > biggestVarianceFromAverage) {
+                biggestVarianceFromAverage = avBeatDuration - shortestBeatDuration;
+            }
+            
+            if ((biggestVarianceFromAverage / avBeatDuration) <= 0.1) {
+                document.getElementById("inputBox").value = parseInt(60 / (avBeatDuration / 1000));
+                //tapButton.destroy(); //turn off butotn
+                document.getElementById("START").value = "BPM identified"
+                endAutoStartModeTime = Date.now() + 2000;
+            }
+            /************************/
+            
+            console.log(avBeatDuration)
+            var inputVal = document.getElementById("inputBox").value;
+            console.log(inputVal);
+            
+            if (inputVal != 0) {
+                if (200 <= inputVal) {
+                    document.getElementById("inputBox").value = inputVal = 200;
+                }
+                if (inputVal <= 20) {
+                    document.getElementById("inputBox").value = inputVal = 20;
+                }
+            }
+            if ((inputVal >= 20) && (inputVal <= 200)) {
+                //document.getElementById("START").value = "BPM identified"
+                
+                tick1.oscillator.type = "sine";
+                
+                Tone.Transport.bpm.value = inputVal;
+                console.log("[TONE STARTED] Input Value: ", inputVal)
+                Tone.Transport.start();
+            }
+            
+        }
+        
+        if (document.getElementById("START").value == "STOP") {
+            Tone.Transport.stop();
+            document.getElementById("START").style.backgroundColor = '#4CAF50';
+            document.getElementById("START").value = "START"
+        }
+        
+    }
+
+
+    document.getElementById("START").addEventListener("click", start);
+    document.getElementById("clearButton").addEventListener("click", clearField);
+    
+
+
+    function clearField() {
+        document.getElementById("inputBox").value = '';
+    }
+
+
+
+
+</script>
+</html>
